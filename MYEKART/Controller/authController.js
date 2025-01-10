@@ -46,52 +46,61 @@ const registerUser = async (req, res) => {
   }
 };
 
-
 const loginUser = async (req, res) => {
   const { username, emailAddress, password } = req.body;
 
   if (!username || !emailAddress || !password) {
-    return res.status(400).json({ error: 'Username, email, and password are required' });
+      return res.status(400).json({ error: 'Username, email, and password are required' });
   }
 
   try {
-    
-    const user = await prisma.customer.findUnique({ where: { emailAddress } });
+      const user = await prisma.customer.findUnique({ 
+          where: { emailAddress } 
+      });
 
-    if (!user) {
-      return res.status(404).json({ error: 'Customer not found' });
-    }
+      if (!user) {
+          return res.status(404).json({ error: 'Customer not found' });
+      }
 
-   
-    const isValid = await bcrypt.compare(password, user.password);
+      const isValid = await bcrypt.compare(password, user.password);
 
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
+      if (!isValid) {
+          return res.status(401).json({ error: 'Invalid credentials' });
+      }
 
-   
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET is not defined');
-    }
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+          throw new Error('JWT_SECRET is not defined');
+      }
 
-    const token = jwt.sign({ id: user.id, name: user.username }, jwtSecret, {
-      expiresIn: '1h',
-    });
+      const token = jwt.sign(
+          { 
+              id: user.id, 
+              name: user.username,
+              email: user.emailAddress 
+          }, 
+          jwtSecret, 
+          { expiresIn: '1h' }
+      );
 
-    
-    return res.json({ message: 'Customer login successful', token });
+      return res.json({ 
+          message: 'Login successful',
+          token,
+          user: {
+              id: user.id,
+              username: user.username,
+              email: user.emailAddress
+          }
+      });
 
   } catch (error) {
-    console.error('Error during login:', error);
-    res.status(500).json({ error: 'Login failed', details: error.message });
+      console.error('Error during login:', error);
+      res.status(500).json({ error: 'Login failed', details: error.message });
   }
 };
 
 
-
 module.exports = {
   registerUser,
-  loginUser,
- 
+  loginUser, 
 };
